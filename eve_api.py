@@ -1,5 +1,5 @@
 #file-encoding: utf-8
-"""EVE API for Twisted."""
+"""EvE API for Twisted."""
 import calendar
 from collections import namedtuple
 import time
@@ -11,18 +11,16 @@ from twisted.internet import task, defer
 from twisted.python import log
 from twisted.web.client import Agent, WebClientContextFactory, readBody
 
-from auth import keyID, vCode
-from mapping import calendar_events_mapping
 
 ENDPOINT = 'https://api.eveonline.com'
 DB_FILE = 'eve_api.db'
 
 
-EVECreds = namedtuple('EVECreds', ['keyID', 'vCode'])
-EVEResult = namedtuple('EVEResult', ['xml', 'expire'])
+EvECreds = namedtuple('EvECreds', ['keyID', 'vCode'])
+EvEResult = namedtuple('EvEResult', ['xml', 'expire'])
 
 
-class EVEAPI(object):
+class EvEAPI(object):
     """
     Wrapped around EvE API.
     Returns deferred with dict from cache or endpoint API.
@@ -31,7 +29,7 @@ class EVEAPI(object):
     def __init__(self, creds, endpoint, db_file):
         """
         @param creds: API Credentials.
-        @type creds: EVECreds.
+        @type creds: EvECreds.
         @param endpoint: API endpoint.
         @type endpoint: string.
         @param db_file: filename for cache db.
@@ -92,7 +90,7 @@ class EVEAPI(object):
         """
         result = ET.fromstring(result)
         expire = self.get_ts(result.find('cachedUntil'))
-        res = EVEResult(result, expire)
+        res = EvEResult(result, expire)
         self.cache[key] = res
         return result
 
@@ -125,6 +123,7 @@ class EVEAPI(object):
 
         @return deferred.
         """
+        from mapping import calendar_events_mapping
         d = defer.maybeDeferred(self._get_api, calendar_events_mapping)
         return d
 
@@ -132,8 +131,9 @@ class EVEAPI(object):
 def main(reactor):
     """Main function, testing purposes."""
     log.startLogging(sys.stdout)
-    creds = EVECreds(keyID, vCode)
-    api = EVEAPI(creds, ENDPOINT, DB_FILE)
+    from auth import keyID, vCode
+    creds = EvECreds(keyID, vCode)
+    api = EvEAPI(creds, ENDPOINT, DB_FILE)
     events = api.get_events()
     events.addCallback(log.msg)
     return events
