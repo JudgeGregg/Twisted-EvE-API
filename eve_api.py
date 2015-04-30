@@ -1,4 +1,4 @@
-#file-encoding: utf-8
+# file-encoding: utf-8
 """EvE API for Twisted."""
 import calendar
 from collections import namedtuple
@@ -7,7 +7,7 @@ import shelve
 import sys
 import xml.etree.ElementTree as ET
 
-from twisted.internet import task, defer
+from twisted.internet import task, defer, reactor
 from twisted.python import log
 from twisted.web.client import Agent, WebClientContextFactory, readBody
 
@@ -26,7 +26,7 @@ class EvEAPI(object):
     Returns deferred with dict from cache or endpoint API.
     """
 
-    def __init__(self, creds, endpoint, db_file):
+    def __init__(self, creds, endpoint=ENDPOINT, db_file=DB_FILE):
         """
         @param creds: API Credentials.
         @type creds: EvECreds.
@@ -40,7 +40,6 @@ class EvEAPI(object):
         self.endpoint = endpoint
         self.cache = shelve.open(db_file)
         context_factory = WebClientContextFactory()
-        from twisted.internet import reactor
         self.agent = Agent(reactor, context_factory)
 
     def get_cred_params(self):
@@ -70,13 +69,13 @@ class EvEAPI(object):
     @staticmethod
     def get_ts(value):
         """
-        Extract UNIX timestamp from xml Element.
+        Extract UNIX timestamp from date and time.
 
-        @param value: xml Element.
-        @type value: xml Element.
+        @param value: date and time.
+        @type value: string.
         @return value: string.
         """
-        tst = calendar.timegm(time.strptime(value.text, "%Y-%m-%d %H:%M:%S"))
+        tst = calendar.timegm(time.strptime(value, "%Y-%m-%d %H:%M:%S"))
         return tst
 
     def save(self, result, key):
@@ -89,7 +88,7 @@ class EvEAPI(object):
         @type key: string.
         """
         result = ET.fromstring(result)
-        expire = self.get_ts(result.find('cachedUntil'))
+        expire = self.get_ts(result.find('cachedUntil').text)
         res = EvEResult(result, expire)
         self.cache[key] = res
         return result
