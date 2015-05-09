@@ -15,6 +15,7 @@ class EvEAPITestCase(unittest.TestCase):
                 eventDate="bar" eventTitle="foobar" duration="1"
                 eventText="barfoo"/>'''),
             # Make sure cache won't expire.
+            # Expiry: Sat Nov  7 10:46:39 3170843.
             99999999999999.0)
     }
 
@@ -33,7 +34,10 @@ class EvEAPITestCase(unittest.TestCase):
 
     def test_events(self):
         """Test Parameters."""
-        self.api.cache['calendar_events'] = self.mock_data['calendar_events']
+        endpoint = self.api.endpoint
+        params = self.api.params
+        url = endpoint + '/char/UpcomingCalendarEvents.xml.aspx' + params
+        self.api.cache[url] = self.mock_data['calendar_events']
         d = self.api.get_events()
         d.addCallback(self.assertEqual, [
             {'duration': '1',

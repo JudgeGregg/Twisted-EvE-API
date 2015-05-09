@@ -6,6 +6,7 @@ import time
 import shelve
 import sys
 import xml.etree.ElementTree as ET
+import urllib
 
 from twisted.internet import task, defer, reactor
 from twisted.python import log
@@ -44,8 +45,7 @@ class EvEAPI(object):
 
     def get_cred_params(self):
         """Get credentials params for API requests."""
-        self.params = '?'+'&'.join(
-            ('keyID='+self.creds.keyID, 'vCode='+self.creds.vCode))
+        self.params = '?'+urllib.urlencode(vars(self.creds))
 
     @staticmethod
     def parse(result, fields):
@@ -93,26 +93,28 @@ class EvEAPI(object):
         self.cache[key] = res
         return result
 
-    def _get_api(self, mapping):
+    def _get_api(self, mapping, **kwargs):
         """
         Get elements from cache or API.
 
         @param mapping: dict of action, key and fields.
         @type : dict.
-        @return deferred.
+        @return deferred or cached result.
         """
-        cache_res = self.cache.get(mapping['key'])
+        action = mapping['action']
+        url = self.endpoint + action + self.params
+        if kwargs:
+            url += '&'+urllib.urlencode(kwargs)
+        cache_res = self.cache.get(url)
         if cache_res and not time.time() > cache_res.expire:
-            log.msg('Cache Hit:', time.ctime(cache_res.expire))
+            log.msg('Cache Hit: %s.' % time.ctime(cache_res.expire))
             res = self.parse(cache_res.xml, mapping['fields'])
             return res
         else:
-            log.msg('Cache Miss')
-            action = mapping['action']
-            url = self.endpoint + action + self.params
+            log.msg('Calling API with URL: %s.' % url)
             d = self.agent.request('GET', url)
             d.addCallback(readBody)
-            d.addCallback(self.save, mapping['key'])
+            d.addCallback(self.save, url)
             d.addCallback(self.parse, mapping['fields'])
             return d
 
