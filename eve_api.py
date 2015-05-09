@@ -128,16 +128,63 @@ class EvEAPI(object):
         d = defer.maybeDeferred(self._get_api, calendar_events_mapping)
         return d
 
+    def get_contracts(self):
+        """
+        Get contracts from cache or API.
+
+        @return deferred.
+        """
+        from mapping import contracts_mapping
+        d = defer.maybeDeferred(self._get_api, contracts_mapping)
+        return d
+
+    def get_contract_items(self, contract_id):
+        """
+        Get contracts from cache or API.
+
+        @return deferred.
+        """
+        from mapping import contract_items_mapping
+        d = defer.maybeDeferred(
+            self._get_api, contract_items_mapping, contractID=contract_id)
+        return d
+
+    def get_corp_contracts(self):
+        """
+        Get corp contracts from cache or API.
+
+        @return deferred.
+        """
+        from mapping import corp_contracts_mapping
+        d = defer.maybeDeferred(self._get_api, corp_contracts_mapping)
+        return d
+
+    def get_corp_contract_items(self, contract_id):
+        """
+        Get contracts from cache or API.
+
+        @return deferred.
+        """
+        from mapping import corp_contract_items_mapping
+        d = defer.maybeDeferred(
+            self._get_api, corp_contract_items_mapping, contractID=contract_id)
+        return d
+
 
 def main(reactor):
     """Main function, testing purposes."""
     log.startLogging(sys.stdout)
     from auth import keyID, vCode
+    from auth import corp_keyID, corp_vCode
     creds = EvECreds(keyID, vCode)
+    corp_creds = EvECreds(corp_keyID, corp_vCode)
     api = EvEAPI(creds, ENDPOINT, DB_FILE)
+    corp_api = EvEAPI(corp_creds, ENDPOINT, 'corp_api.db')
     events = api.get_events()
+    contracts = corp_api.get_corp_contracts()
+    contracts.addCallback(log.msg)
     events.addCallback(log.msg)
-    return events
+    return defer.DeferredList([contracts, events])
 
 if __name__ == '__main__':
     task.react(main)
